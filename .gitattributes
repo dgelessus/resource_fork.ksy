@@ -1,0 +1,7 @@
+*.ksy text linguist-language=yaml
+*.md text
+
+.editorconfig text
+.gitattributes text
+.gitignore text
+LICENSE text
