@@ -231,11 +231,66 @@ types:
                     # but just in case simulate the wraparound behavior here as well.
                     value: (num_resource_references_m1 + 1) % 0x10000
                     doc: The number of resources in the reference list for this type.
+                  resource_reference_list:
+                    io: _parent._parent._io
+                    pos: ofs_resource_reference_list
+                    type: resource_reference_list(num_resource_references)
+                    doc: |
+                      The resource reference list for this resource type.
                 doc: |
                   A single entry in the resource type list.
                   
                   Each entry corresponds to exactly one resource reference list.
             doc: Resource type list in the resource map.
+          resource_reference_list:
+            params:
+              - id: num_resource_references
+                type: u2
+                doc: |
+                  The number of references in this resource reference list.
+                  
+                  This information needs to be passed in as a parameter,
+                  because it is stored in the reference list's type list entry,
+                  and not in the reference list itself.
+            seq:
+              - id: references
+                type: resource_reference
+                repeat: expr
+                repeat-expr: num_resource_references
+                doc: The resource references in this reference list.
+            types:
+              resource_reference:
+                seq:
+                  - id: resource_id
+                    type: s2
+                    doc: ID of the resource described by this reference.
+                  - id: ofs_resource_name
+                    type: u2
+                    doc: |
+                      Offset of the name for the resource described by this reference,
+                      from the start of the resource name area.
+                      
+                      If the resource has no name,
+                      the value of this field is `0xffff`
+                      i. e. `-1` truncated to a 16-bit unsigned integer.
+                  - id: attributes
+                    type: u1
+                    doc: Attributes of the resource described by this reference.
+                  - id: ofs_data
+                    type: b24 # 3-byte unsigned integer, packed together with the previous 1-byte field.
+                    doc: |
+                      Offset of the data block for the resource described by this reference,
+                      from the start of the resource data area.
+                  - id: reserved_handle
+                    type: u4
+                    doc: Reserved space for the resource's handle in memory.
+                doc: A single resource reference in a resource reference list.
+            doc: |
+              A resource reference list,
+              as stored in the reference list area.
+              
+              Each reference list has exactly one matching entry in the resource type list,
+              and describes all resources of a single type in the file.
         doc: |
           Resource type list and storage area for resource reference lists in the resource map.
           
