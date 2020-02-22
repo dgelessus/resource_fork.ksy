@@ -218,7 +218,13 @@ types:
                     type: u2
                     doc: |
                       Offset of the resource reference list for this resource type,
-                      from the start of the resource reference list area.
+                      from the start of the resource type list.
+                      
+                      Although the offset is relative to the start of the type list,
+                      it should never point into the type list itself,
+                      but into the reference list storage area that directly follows it.
+                      That is,
+                      it should always be at least `_parent._sizeof`.
                 instances:
                   num_resource_references:
                     # Reference lists should never be empty,
