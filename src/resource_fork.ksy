@@ -53,7 +53,7 @@ doc-ref:
   - 'https://github.com/dgelessus/mac_file_format_docs/blob/master/README.md#resource-forks'
 seq:
   - id: header
-    type: resource_file_header
+    type: file_header
     doc: The resource file's header information.
   - id: system_data
     size: 112
@@ -81,16 +81,16 @@ seq:
       In resource files written by Mac OS X,
       this field is set to all zero bytes.
 instances:
-  resource_data_with_io:
-    pos: header.ofs_resource_data
+  data_blocks_with_io:
+    pos: header.ofs_data_blocks
     type: data_with_io
-    size: header.len_resource_data
+    size: header.len_data_blocks
     doc: |
       Internal helper instance,
       do not use,
-      use `resource_data` instead.
-  resource_data:
-    value: resource_data_with_io.data
+      use `data_blocks` instead.
+  data_blocks:
+    value: data_blocks_with_io.data
     doc: |
       Storage area for the data blocks of all resources.
       
@@ -133,9 +133,9 @@ types:
       External code should not use any attributes of this type directly,
       not even `data` -
       see the documentation of the `data` attribute for details.
-  resource_file_header:
+  file_header:
     seq:
-      - id: ofs_resource_data
+      - id: ofs_data_blocks
         type: u4
         doc: |
           Offset of the resource data area,
@@ -151,9 +151,9 @@ types:
           from the start of the resource file.
           
           In practice,
-          this should always be `ofs_resource_data + len_resource_data`,
+          this should always be `ofs_data_blocks + len_data_blocks`,
           i. e. the resource map should directly follow the resource data area.
-      - id: len_resource_data
+      - id: len_data_blocks
         type: u4
         doc: |
           Length of the resource data area.
@@ -168,7 +168,7 @@ types:
     doc: |
       Resource file header,
       containing the offsets and lengths of the resource data area and resource map.
-  resource_data_block:
+  data_block:
     seq:
       - id: len_data
         type: u4
@@ -186,8 +186,8 @@ types:
       along with its length.
   resource_map:
     seq:
-      - id: reserved_resource_file_header_copy
-        type: resource_file_header
+      - id: reserved_file_header_copy
+        type: file_header
         doc: Reserved space for a copy of the resource file header.
       - id: reserved_next_resource_map_handle
         type: u4
@@ -198,7 +198,7 @@ types:
       - id: file_attributes
         type: u2
         doc: The resource file's attributes.
-      - id: ofs_resource_type_list
+      - id: ofs_type_list
         type: u2
         doc: |
           Offset of the resource type list,
@@ -207,35 +207,35 @@ types:
           In practice,
           this should always be `sizeof<resource_map>`,
           i. e. the resource type list should directly follow the resource map.
-      - id: ofs_resource_names
+      - id: ofs_names
         type: u2
         doc: |
           Offset of the resource name area,
           from the start of the resource map.
     instances:
-      resource_type_list_and_reference_lists:
-        pos: ofs_resource_type_list
-        type: resource_type_list_and_reference_lists
-        size: ofs_resource_names - ofs_resource_type_list
+      type_list_and_reference_lists:
+        pos: ofs_type_list
+        type: type_list_and_reference_lists
+        size: ofs_names - ofs_type_list
         doc: The resource map's resource type list, followed by the resource reference list area.
-      resource_names_with_io:
-        pos: ofs_resource_names
+      names_with_io:
+        pos: ofs_names
         type: data_with_io
         size-eos: true
         doc: |
           Internal helper instance,
           do not use,
-          use `resource_names` instead.
-      resource_names:
-        value: resource_names_with_io.data
+          use `names` instead.
+      names:
+        value: names_with_io.data
         doc: Storage area for the names of all resources.
     types:
-      resource_type_list_and_reference_lists:
+      type_list_and_reference_lists:
         seq:
-          - id: resource_type_list
-            type: resource_type_list
+          - id: type_list
+            type: type_list
             doc: The resource map's resource type list.
-          - id: resource_reference_lists
+          - id: reference_lists
             size-eos: true
             doc: |
               Storage area for the resource map's resource reference lists.
@@ -244,9 +244,9 @@ types:
               the reference lists are stored contiguously,
               in the same order as their corresponding resource type list entries.
         types:
-          resource_type_list:
+          type_list:
             seq:
-              - id: num_resource_types_m1
+              - id: num_types_m1
                 type: u2
                 doc: |
                   The number of resource types in this list,
@@ -256,30 +256,30 @@ types:
                   the value of this field is `0xffff`,
                   i. e. `-1` truncated to a 16-bit unsigned integer.
               - id: entries
-                type: resource_type_list_entry
+                type: type_list_entry
                 repeat: expr
-                repeat-expr: num_resource_types
+                repeat-expr: num_types
                 doc: Entries in the resource type list.
             instances:
-              num_resource_types:
+              num_types:
                 # The modulo 0x10000 simulates 16-bit unsigned integer wraparound,
-                # so that empty lists are handled correctly (see doc for num_resource_types_m1).
-                value: (num_resource_types_m1 + 1) % 0x10000
+                # so that empty lists are handled correctly (see doc for num_types_m1).
+                value: (num_types_m1 + 1) % 0x10000
                 doc: The number of resource types in this list.
             types:
-              resource_type_list_entry:
+              type_list_entry:
                 seq:
-                  - id: resource_type
+                  - id: type
                     size: 4
                     doc: The four-character type code of the resources in the reference list.
-                  - id: num_resource_references_m1
+                  - id: num_references_m1
                     type: u2
                     doc: |
                       The number of resources in the reference list for this type,
                       minus one.
                       
                       Empty reference lists should never exist.
-                  - id: ofs_resource_reference_list
+                  - id: ofs_reference_list
                     type: u2
                     doc: |
                       Offset of the resource reference list for this resource type,
@@ -291,15 +291,15 @@ types:
                       That is,
                       it should always be at least `_parent._sizeof`.
                 instances:
-                  num_resource_references:
+                  num_references:
                     # Reference lists should never be empty,
                     # but just in case simulate the wraparound behavior here as well.
-                    value: (num_resource_references_m1 + 1) % 0x10000
+                    value: (num_references_m1 + 1) % 0x10000
                     doc: The number of resources in the reference list for this type.
-                  resource_reference_list:
+                  reference_list:
                     io: _parent._parent._io
-                    pos: ofs_resource_reference_list
-                    type: resource_reference_list(num_resource_references)
+                    pos: ofs_reference_list
+                    type: reference_list(num_references)
                     doc: |
                       The resource reference list for this resource type.
                 doc: |
@@ -307,9 +307,9 @@ types:
                   
                   Each entry corresponds to exactly one resource reference list.
             doc: Resource type list in the resource map.
-          resource_reference_list:
+          reference_list:
             params:
-              - id: num_resource_references
+              - id: num_references
                 type: u2
                 doc: |
                   The number of references in this resource reference list.
@@ -319,17 +319,17 @@ types:
                   and not in the reference list itself.
             seq:
               - id: references
-                type: resource_reference
+                type: reference
                 repeat: expr
-                repeat-expr: num_resource_references
+                repeat-expr: num_references
                 doc: The resource references in this reference list.
             types:
-              resource_reference:
+              reference:
                 seq:
-                  - id: resource_id
+                  - id: id
                     type: s2
                     doc: ID of the resource described by this reference.
-                  - id: ofs_resource_name
+                  - id: ofs_name
                     type: u2
                     doc: |
                       Offset of the name for the resource described by this reference,
@@ -350,17 +350,17 @@ types:
                     type: u4
                     doc: Reserved space for the resource's handle in memory.
                 instances:
-                  resource_name:
-                    io: _root.resource_map.resource_names_with_io._io
-                    pos: ofs_resource_name
-                    type: resource_name
-                    if: ofs_resource_name != 0xffff
+                  name:
+                    io: _root.resource_map.names_with_io._io
+                    pos: ofs_name
+                    type: name
+                    if: ofs_name != 0xffff
                     doc: |
                       The name (if any) of the resource described by this reference.
                   data_block:
-                    io: _root.resource_data_with_io._io
+                    io: _root.data_blocks_with_io._io
                     pos: ofs_data_block
-                    type: resource_data_block
+                    type: data_block
                     doc: |
                       The data block containing the data for the resource described by this reference.
                 doc: A single resource reference in a resource reference list.
@@ -377,7 +377,7 @@ types:
           the start of the resource reference list area is not stored explicitly in the file,
           instead it always starts directly after the resource type list.
           The simplest way to implement this is by placing both types into a single `seq`.
-      resource_name:
+      name:
         seq:
           - id: len_value
             type: u1
