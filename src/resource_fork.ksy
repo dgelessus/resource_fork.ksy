@@ -91,6 +91,28 @@ instances:
     size: header.len_resource_map
     doc: The resource file's resource map.
 types:
+  data_with_io:
+    seq:
+      - id: data
+        size-eos: true
+        doc: |
+          The actual data.
+          
+          This attribute should not be used directly.
+          Instead,
+          all types that use `data_with_io` should provide value instances that expose the `data` field as a top-level member of the parent type.
+          For example,
+          if a type has a field of type `data_with_io` called `some_field_internal`,
+          it should also provide a value instance called `some_field` with `value: some_field_internal.data`.
+          External code should then only use `some_field`,
+          and not `some_field_internal`.
+    doc: |
+      Internal helper type to work around Kaitai Struct not providing an `_io` member for plain byte arrays.
+      
+      This type (and fields of this type) should only be used in KSY code.
+      External code should not use any attributes of this type directly,
+      not even `data` -
+      see the documentation of the `data` attribute for details.
   resource_file_header:
     seq:
       - id: ofs_resource_data
@@ -160,9 +182,16 @@ types:
         type: resource_type_list_and_reference_lists
         size: ofs_resource_names - ofs_resource_type_list
         doc: The resource map's resource type list, followed by the resource reference list area.
-      resource_names:
+      resource_names_with_io:
         pos: ofs_resource_names
+        type: data_with_io
         size-eos: true
+        doc: |
+          Internal helper instance,
+          do not use,
+          use `resource_names` instead.
+      resource_names:
+        value: resource_names_with_io.data
         doc: Storage area for the names of all resources.
     types:
       resource_type_list_and_reference_lists:
@@ -284,6 +313,14 @@ types:
                   - id: reserved_handle
                     type: u4
                     doc: Reserved space for the resource's handle in memory.
+                instances:
+                  resource_name:
+                    io: _root.resource_map.resource_names_with_io._io
+                    pos: ofs_resource_name
+                    type: resource_name
+                    if: ofs_resource_name != 0xffff
+                    doc: |
+                      The name (if any) of the resource described by this reference.
                 doc: A single resource reference in a resource reference list.
             doc: |
               A resource reference list,
@@ -298,6 +335,47 @@ types:
           the start of the resource reference list area is not stored explicitly in the file,
           instead it always starts directly after the resource type list.
           The simplest way to implement this is by placing both types into a single `seq`.
+      resource_name:
+        seq:
+          - id: len_value
+            type: u1
+            doc: |
+              The length of the resource name, in bytes.
+          - id: value
+            size: len_value
+            doc: |
+              The resource name.
+              
+              This field is exposed as a byte array,
+              because there is no universal encoding for resource names.
+              Most Classic Mac software does not deal with encodings explicitly and instead assumes that all strings,
+              including resource names,
+              use the system encoding,
+              which varies depending on the system language.
+              This means that resource names can use different encodings depending on what system language they were created with.
+              
+              Many resource names are plain ASCII,
+              meaning that the encoding often does not matter
+              (because all Mac OS encodings are ASCII-compatible).
+              For non-ASCII resource names,
+              the most common encoding is perhaps MacRoman
+              (used for English and other Western languages),
+              but other encodings are also sometimes used,
+              especially for software in non-Western languages.
+              
+              There is no requirement that all names in a single resource file use the same encoding.
+              For example,
+              localized software may have some (but not all) of its resource names translated.
+              For non-Western languages,
+              this can lead to some resource names using MacRoman,
+              and others using a different encoding.
+        doc: |
+          A resource name,
+          as stored in the resource name storage area in the resource map.
+          
+          The resource names are not required to appear in any particular order.
+          There may be unused space between and around resource names,
+          but in practice they are often contiguous.
     doc: |
       Resource map,
       containing information about the resources in the file and where they are located in the data area.
