@@ -81,10 +81,30 @@ seq:
       In resource files written by Mac OS X,
       this field is set to all zero bytes.
 instances:
-  resource_data:
+  resource_data_with_io:
     pos: header.ofs_resource_data
+    type: data_with_io
     size: header.len_resource_data
-    doc: Storage area for the contents of all resources.
+    doc: |
+      Internal helper instance,
+      do not use,
+      use `resource_data` instead.
+  resource_data:
+    value: resource_data_with_io.data
+    doc: |
+      Storage area for the data blocks of all resources.
+      
+      These data blocks are not required to appear in any particular order,
+      and there may be unused space between and around them.
+      
+      In practice,
+      the data blocks in newly created resource files are usually contiguous.
+      When existing resources are shortened,
+      the Mac OS resource manager leaves unused space where the now removed resource data was,
+      as this is quicker than moving the following resource data into the newly freed space.
+      Such unused space may be cleaned up later when the resource manager "compacts" the resource file,
+      which happens when resources are removed entirely,
+      or when resources are added or grown so that more space is needed in the data area.
   resource_map:
     pos: header.ofs_resource_map
     type: resource_map
@@ -148,6 +168,22 @@ types:
     doc: |
       Resource file header,
       containing the offsets and lengths of the resource data area and resource map.
+  resource_data_block:
+    seq:
+      - id: len_data
+        type: u4
+        doc: |
+          The length of the resource data stored in this block.
+      - id: data
+        size: len_data
+        doc: |
+          The data stored in this block.
+    doc: |
+      A resource data block,
+      as stored in the resource data area.
+      
+      Each data block stores the data contained in a resource,
+      along with its length.
   resource_map:
     seq:
       - id: reserved_resource_file_header_copy
@@ -305,7 +341,7 @@ types:
                   - id: attributes
                     type: u1
                     doc: Attributes of the resource described by this reference.
-                  - id: ofs_data
+                  - id: ofs_data_block
                     type: b24 # 3-byte unsigned integer, packed together with the previous 1-byte field.
                     doc: |
                       Offset of the data block for the resource described by this reference,
@@ -321,6 +357,12 @@ types:
                     if: ofs_resource_name != 0xffff
                     doc: |
                       The name (if any) of the resource described by this reference.
+                  data_block:
+                    io: _root.resource_data_with_io._io
+                    pos: ofs_data_block
+                    type: resource_data_block
+                    doc: |
+                      The data block containing the data for the resource described by this reference.
                 doc: A single resource reference in a resource reference list.
             doc: |
               A resource reference list,
