@@ -196,7 +196,8 @@ types:
         type: u2
         doc: Reserved space for the resource file's file reference number.
       - id: file_attributes
-        type: u2
+        type: file_attributes
+        size: sizeof<file_attributes> # Force creation of a substream
         doc: The resource file's attributes.
       - id: ofs_type_list
         type: u2
@@ -230,6 +231,77 @@ types:
         value: names_with_io.data
         doc: Storage area for the names of all resources.
     types:
+      file_attributes:
+        seq:
+          - id: resources_locked
+            type: b1
+            doc: |
+              TODO What does this attribute actually do,
+              and how is it different from `read_only`?
+              
+              This attribute is undocumented and not defined in <CarbonCore/Resources.h>,
+              but ResEdit has a checkbox called "Resources Locked" for this attribute.
+          - id: reserved0
+            type: b6
+            doc: |
+              These attributes have no known usage or meaning and should always be zero.
+          - id: printer_driver_multifinder_compatible
+            type: b1
+            doc: |
+              Indicates that this printer driver is compatible with MultiFinder,
+              i. e. can be used simultaneously by multiple applications.
+              This attribute is only meant to be set on printer driver resource forks.
+              
+              This attribute is not documented in Inside Macintosh and is not defined in <CarbonCore/Resources.h>.
+              It is documented in technote PR510,
+              and ResEdit has a checkbox called "Printer Driver MultiFinder Compatible" for this attribute.
+            doc-ref: https://www.fenestrated.net/mirrors/Apple%20Technotes%20(As%20of%202002)/pr/pr_510.html Apple Technical Note PR510 - Printer Driver Q&As, section '"Printer driver is MultiFinder compatible" bit'
+          - id: no_write_changes
+            -orig-id: mapReadOnly
+            type: b1
+            doc: |
+              Indicates that the Resource Manager should not write any changes from memory into the resource file.
+              Any modification operations requested by the application will return successfully,
+              but will not actually update the resource file.
+              
+              TODO Is this attribute supposed to be set on disk or only in memory?
+          - id: needs_compact
+            -orig-id: mapCompact
+            type: b1
+            doc: |
+              Indicates that the resource file should be compacted the next time it is written by the Resource Manager.
+              This attribute is only meant to be set in memory;
+              it is cleared when the resource file is written to disk.
+              
+              This attribute is mainly used internally by the Resource Manager,
+              but may also be set manually by the application.
+          - id: map_needs_write
+            -orig-id: mapChanged
+            type: b1
+            doc: |
+              Indicates that the resource map has been changed in memory and should be written to the resource file on the next update.
+              This attribute is only meant to be set in memory;
+              it is cleared when the resource file is written to disk.
+              
+              This attribute is mainly used internally by the Resource Manager,
+              but may also be set manually by the application.
+          - id: reserved1
+            type: b5
+            doc: |
+              These attributes have no known usage or meaning and should always be zero.
+        instances:
+          as_int:
+            pos: 0
+            type: u2
+            doc: |
+              The attributes as a packed integer,
+              as they are stored in the file.
+        doc: |
+          A resource file's attributes,
+          as stored in the resource map.
+          
+          These attributes are sometimes also referred to as resource map attributes,
+          because of where they are stored in the file.
       type_list_and_reference_lists:
         seq:
           - id: type_list
