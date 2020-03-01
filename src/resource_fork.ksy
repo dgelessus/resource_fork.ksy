@@ -411,7 +411,8 @@ types:
                       the value of this field is `0xffff`
                       i. e. `-1` truncated to a 16-bit unsigned integer.
                   - id: attributes
-                    type: u1
+                    type: attributes
+                    size: sizeof<attributes> # Force creation of a substream
                     doc: Attributes of the resource described by this reference.
                   - id: ofs_data_block
                     type: b24 # 3-byte unsigned integer, packed together with the previous 1-byte field.
@@ -435,6 +436,146 @@ types:
                     type: data_block
                     doc: |
                       The data block containing the data for the resource described by this reference.
+                types:
+                  attributes:
+                    seq:
+                      - id: system_reference
+                        -orig-id: resSysRef
+                        type: b1
+                        doc: |
+                          Indicates that this resource reference is a system reference rather than a regular local reference.
+                          This attribute is nearly undocumented.
+                          For all practical purposes,
+                          it should be considered reserved and should always be zero.
+                          
+                          This attribute was last documented in the Promotional Edition of Inside Macintosh,
+                          in the Resource Manager chapter,
+                          on pages 37-41,
+                          in a "System References" section that calls itself "of historical interest only".
+                          The final versions of Inside Macintosh only mention this attribute as "reserved for use by the Resource Manager".
+                          <CarbonCore/Resources.h> contains a `resSysRefBit` constant,
+                          but no corresponding `resSysRef` constant like for all other resource attributes.
+                          
+                          According to the Inside Macintosh Promotional Edition,
+                          a system reference was effectively an alias pointing to a resource stored in the system file,
+                          possibly with a different ID and name (but not type) than the system reference.
+                          If this attribute is set,
+                          `ofs_data_block` is ignored and should be zero,
+                          and `reserved_handle` contains
+                          (in its high and low two bytes, respectively)
+                          the ID and name offset of the real system resource that this system reference points to.
+                          
+                          TODO Do any publicly available Mac OS versions support system references,
+                          and do any real files/applications use them?
+                          So far the answer seems to be no,
+                          but I would like to be proven wrong!
+                      - id: load_into_system_heap
+                        -orig-id: resSysHeap
+                        type: b1
+                        doc: |
+                          Indicates that this resource should be loaded into the system heap if possible,
+                          rather than the application heap.
+                          
+                          This attribute is only meant to be used by Mac OS itself,
+                          for System and Finder resources,
+                          and not by normal applications.
+                          
+                          This attribute may be set both in memory and on disk,
+                          but it only has any meaning while the resource file is loaded into memory.
+                      - id: purgeable
+                        -orig-id: resPurgeable
+                        type: b1
+                        doc: |
+                          Indicates that this resource's data should be purgeable by the Mac OS Memory Manager.
+                          This allows the resource data to be purged from memory if space is needed on the heap.
+                          Purged resources can later be reloaded from disk if their data is needed again.
+                          
+                          If the `locked` attribute is set,
+                          this attribute has no effect
+                          (i. e. locked resources are never purgeable).
+                          
+                          This attribute may be set both in memory and on disk,
+                          but it only has any meaning while the resource file is loaded into memory.
+                      - id: locked
+                        -orig-id: resLocked
+                        type: b1
+                        doc: |
+                          Indicates that this resource's data should be locked to the Mac OS Memory Manager.
+                          This prevents the resource data from being moved when the heap is compacted.
+                          
+                          This attribute may be set both in memory and on disk,
+                          but it only has any meaning while the resource file is loaded into memory.
+                      - id: protected
+                        -orig-id: resProtected
+                        type: b1
+                        doc: |
+                          Indicates that this resource should be protected (i. e. unmodifiable) in memory.
+                          This prevents the application from using the Resource Manager to change the resource's data or metadata,
+                          or delete it.
+                          The only exception are the resource's attributes,
+                          which can always be changed,
+                          even for protected resources.
+                          This allows protected resources to be unprotected again by the application.
+                          
+                          This attribute may be set both in memory and on disk,
+                          but it only has any meaning while the resource file is loaded into memory.
+                      - id: preload
+                        -orig-id: resPreload
+                        type: b1
+                        doc: |
+                          Indicates that this resource's data should be immediately loaded into memory when the resource file is opened.
+                          
+                          This attribute may be set both in memory and on disk,
+                          but it only has any meaning when the resource file is first opened.
+                      - id: needs_write
+                        -orig-id: resChanged
+                        type: b1
+                        doc: |
+                          Indicates that this resource's data has been changed in memory and should be written to the resource file on the next update.
+                          This attribute is only meant to be set in memory;
+                          it is cleared when the resource file is written to disk.
+
+                          This attribute is used internally by the Resource Manager and should not be set manually by the application.
+                      - id: compressed
+                        -orig-id: resCompressed
+                        type: b1
+                        doc: |
+                          Indicates that this resource's data is compressed.
+                          Compressed resource data is decompressed transparently by the Resource Manager when reading.
+                          
+                          Resource decompression is not documented by Apple.
+                          It is mostly used internally in System 7,
+                          some of Apple's own applications (such as ResEdit),
+                          and also by some third-party applications.
+                          Later versions of Classic Mac OS make less use of resource compression,
+                          but still support it fully for backwards compatibility.
+                          Carbon in Mac OS X no longer supports resource compression in any way.
+                          
+                          The data of all compressed resources starts with a common header,
+                          followed by the compressed data.
+                          The data is decompressed using code in a `'dcmp'` resource.
+                          Some decompressors used by Apple are included in the System file,
+                          but applications can also include custom decompressors.
+                          The header of the compressed data indicates the ID of the `'dcmp'` resource used to decompress the data,
+                          along with some parameters for the decompressor.
+                          
+                          For a detailed description of the structure of compressed resources and Apple's decompressors,
+                          see the specs in the compress subdirectory.
+                          (Note: These specs haven't been written yet.
+                          For now,
+                          see the
+                          [source code of the `rsrcfork.compress` module](https://github.com/dgelessus/python-rsrcfork/tree/246b69e375315d55d8b0f1dde2c04fa5d792b55f/rsrcfork/compress)
+                          in the python-rsrcfork library.)
+                    instances:
+                      as_int:
+                        pos: 0
+                        type: u1
+                        doc: |
+                          The attributes as a packed integer,
+                          as they are stored in the file.
+                    doc: |
+                      A resource's attributes,
+                      as stored in a resource reference.
                 doc: A single resource reference in a resource reference list.
             doc: |
               A resource reference list,
