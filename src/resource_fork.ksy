@@ -543,29 +543,8 @@ types:
                           Indicates that this resource's data is compressed.
                           Compressed resource data is decompressed transparently by the Resource Manager when reading.
                           
-                          Resource decompression is not documented by Apple.
-                          It is mostly used internally in System 7,
-                          some of Apple's own applications (such as ResEdit),
-                          and also by some third-party applications.
-                          Later versions of Classic Mac OS make less use of resource compression,
-                          but still support it fully for backwards compatibility.
-                          Carbon in Mac OS X no longer supports resource compression in any way.
-                          
-                          The data of all compressed resources starts with a common header,
-                          followed by the compressed data.
-                          The data is decompressed using code in a `'dcmp'` resource.
-                          Some decompressors used by Apple are included in the System file,
-                          but applications can also include custom decompressors.
-                          The header of the compressed data indicates the ID of the `'dcmp'` resource used to decompress the data,
-                          along with some parameters for the decompressor.
-                          
-                          For a detailed description of the structure of compressed resources and Apple's decompressors,
-                          see the specs in the compress subdirectory.
-                          (Note: These specs haven't been written yet.
-                          For now,
-                          see the
-                          [source code of the `rsrcfork.compress` module](https://github.com/dgelessus/python-rsrcfork/tree/246b69e375315d55d8b0f1dde2c04fa5d792b55f/rsrcfork/compress)
-                          in the python-rsrcfork library.)
+                          For a detailed description of the structure of compressed resources as they are stored in the file,
+                          see the compress/compressed_resource.ksy spec.
                     instances:
                       as_int:
                         pos: 0
