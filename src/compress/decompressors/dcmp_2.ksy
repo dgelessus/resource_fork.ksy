@@ -154,14 +154,13 @@ instances:
     doc: |
       The default lookup table,
       which is used if no custom lookup table is included with the compressed data.
-  # Currently not possible, see https://github.com/kaitai-io/kaitai_struct/issues/719
-  ##lookup_table:
-  ##  value: |
-  ##    header_parameters.flags.has_custom_lookup_table
-  ##    ? custom_lookup_table
-  ##    : default_lookup_table
-  ##  doc: |
-  ##    The lookup table to be used for this compressed data.
+  lookup_table:
+    value: |
+      header_parameters.flags.has_custom_lookup_table
+      ? custom_lookup_table
+      : default_lookup_table
+    doc: |
+      The lookup table to be used for this compressed data.
 types:
   header_parameters:
     seq:
