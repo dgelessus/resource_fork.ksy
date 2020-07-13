@@ -44,11 +44,6 @@ seq:
       as specified in the header.
       For details about the compressed data formats implemented by Apple's decompressors,
       see the specs in the decompressors subdirectory.
-      (Note: These specs haven't been written yet.
-      For now,
-      see the
-      [source code of the `rsrcfork.compress` module](https://github.com/dgelessus/python-rsrcfork/tree/246b69e375315d55d8b0f1dde2c04fa5d792b55f/rsrcfork/compress)
-      in the python-rsrcfork library.)
 types:
   header:
     seq:
