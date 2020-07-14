@@ -67,12 +67,7 @@ types:
           * `'BOOL'`:
             Macintosh boolean stored in 2 bytes,
             displayed as a pair of radio buttons labeled True/False.
-            The actual boolean value is stored in the first byte's lowest bit.
-            The rest of the field (the first byte's high bits and the entire second byte) are ignored.
-            This unusual format comes from a combination of the Macintosh boolean format
-            (which is 1 byte large but only uses the lowest bit)
-            and the 68k requirement to keep the stack 2-byte-aligned
-            (which makes it necessary to add a second unused byte for alignment).
+            See common_types/macintosh_boolean.ksy for a description of this boolean format.
           * `'BBIT'`:
             Single bit,
             displayed as a pair of radio buttons labeled 0/1.
